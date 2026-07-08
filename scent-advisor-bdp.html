@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Scent Advisor · Bibliothèque de Parfum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --midnight:#0c1018;--gold:#b8965a;--gold-light:#d4b07a;
+  --gold-mist:rgba(184,150,90,.10);--gold-border:rgba(184,150,90,.25);
+  --cream:#f5f0e8;--cream-dim:rgba(245,240,232,.55);--cream-hint:rgba(245,240,232,.30);
+  --radius:10px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--midnight);color:var(--cream);min-height:100vh;overflow-x:hidden}
+#particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.particle{position:absolute;border-radius:50%;background:var(--gold);opacity:0;animation:drift linear infinite}
+@keyframes drift{0%{transform:translateY(100vh) scale(0);opacity:0}8%{opacity:.35}92%{opacity:.12}100%{transform:translateY(-8vh) scale(1.2);opacity:0}}
+
+/* LANG SWITCHER */
+.lang-bar{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:flex-end;padding:10px 20px;gap:4px;background:linear-gradient(to bottom,rgba(12,16,24,.95),transparent);pointer-events:none}
+.lang-btn{pointer-events:all;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:20px;border:1px solid var(--gold-border);color:var(--cream-hint);background:transparent;cursor:pointer;transition:all .18s;font-family:'Inter',sans-serif}
+.lang-btn.active{border-color:var(--gold);color:var(--gold);background:var(--gold-mist)}
+.lang-btn:hover:not(.active){color:var(--cream);border-color:rgba(184,150,90,.5)}
+
+/* LAYOUT */
+.page{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1fr;padding-top:44px}
+@media(min-width:820px){.page{grid-template-columns:380px 1fr;padding-top:0}}
+
+/* SIDEBAR */
+.sidebar{background:linear-gradient(160deg,#111722 0%,#0c1018 100%);border-right:1px solid var(--gold-border);padding:64px 40px 48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.sidebar::before{content:'';position:absolute;bottom:-80px;left:-80px;width:320px;height:320px;background:radial-gradient(circle,rgba(184,150,90,.07) 0%,transparent 70%);pointer-events:none}
+@media(max-width:819px){.sidebar{padding:32px 24px 28px;border-right:none;border-bottom:1px solid var(--gold-border)}}
+.brand-logo{width:140px;margin-bottom:24px;opacity:.85;filter:brightness(1.3)}
+.brand-eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.brand-eyebrow::after{content:'';flex:1;height:1px;background:var(--gold-border);max-width:48px}
+.brand-title{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(28px,4.5vw,42px);line-height:1.1;color:var(--cream)}
+.brand-title em{font-style:italic;color:var(--gold-light)}
+.brand-sub{font-size:13px;color:var(--cream-dim);line-height:1.7;margin-top:16px;max-width:280px}
+.progress-section{margin-top:36px}
+@media(max-width:819px){.progress-section{margin-top:24px}}
+.progress-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--cream-hint);margin-bottom:10px}
+.progress-steps{display:flex;gap:6px;align-items:center}
+.progress-dot{width:6px;height:6px;border-radius:50%;background:var(--gold-border);transition:background .35s,transform .25s}
+.progress-dot.done{background:var(--gold)}
+.progress-dot.active{background:var(--gold-light);transform:scale(1.5)}
+.progress-text{font-size:11px;color:var(--cream-hint);margin-left:8px}
+.sidebar-bottom{margin-top:40px}
+@media(max-width:819px){.sidebar-bottom{display:none}}
+.sidebar-quote{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:15px;color:var(--cream-hint);line-height:1.6;border-left:2px solid var(--gold-border);padding-left:16px}
+
+/* MAIN */
+.main{padding:clamp(28px,4vw,60px) clamp(20px,5vw,56px);display:flex;flex-direction:column;max-width:100%;overflow-y:auto}
+.step-card{display:none;animation:fadeUp .45s ease both;max-width:560px;width:100%}
+.step-card.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.step-question{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,3.2vw,28px);font-weight:300;line-height:1.3;color:var(--cream);margin-bottom:6px}
+.step-hint{font-size:13px;color:var(--cream-dim);margin-bottom:24px;line-height:1.5}
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+@media(max-width:480px){.options-grid{grid-template-columns:1fr}}
+.option-btn{background:transparent;border:1px solid var(--gold-border);border-radius:var(--radius);padding:13px 15px;text-align:left;cursor:pointer;transition:all .18s;color:var(--cream);display:flex;gap:10px;align-items:flex-start}
+.option-btn:hover{border-color:var(--gold);background:var(--gold-mist)}
+.option-btn.selected{border-color:var(--gold);background:rgba(184,150,90,.14)}
+.option-icon{font-size:17px;flex-shrink:0;margin-top:1px}
+.option-label{font-size:13px;font-weight:500;color:var(--cream);display:block;margin-bottom:2px}
+.option-desc{font-size:11px;color:var(--cream-dim);line-height:1.45}
+.free-input{width:100%;background:rgba(245,240,232,.04);border:1px solid var(--gold-border);border-radius:var(--radius);color:var(--cream);font-family:'Inter',sans-serif;font-size:14px;padding:14px 16px;resize:none;min-height:88px;outline:none;transition:border-color .2s;line-height:1.6;margin-bottom:16px}
+.free-input::placeholder{color:var(--cream-hint)}
+.free-input:focus{border-color:var(--gold)}
+.step-nav{display:flex;align-items:center;gap:12px;margin-top:4px}
+.btn-next{font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:11px 26px;border-radius:var(--radius);border:1px solid var(--gold);background:var(--gold-mist);color:var(--gold);cursor:pointer;transition:all .18s}
+.btn-next:hover{background:var(--gold);color:var(--midnight)}
+.btn-next:disabled{opacity:.3;cursor:default}
+.btn-back{font-size:12px;color:var(--cream-hint);background:none;border:none;cursor:pointer;padding:4px;transition:color .15s}
+.btn-back:hover{color:var(--cream)}
+
+/* LOADING */
+#loading-screen{display:none;max-width:560px;animation:fadeUp .4s ease both}
+#loading-screen.active{display:block}
+.loading-title{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:24px;font-weight:300;color:var(--cream);margin-bottom:10px}
+.loading-sub{font-size:13px;color:var(--cream-dim);margin-bottom:28px}
+.loading-bar-wrap{width:100%;height:1px;background:var(--gold-border);margin-bottom:28px;overflow:hidden}
+.loading-bar{height:100%;background:var(--gold);animation:loadBar 2.8s ease both}
+@keyframes loadBar{from{width:0}to{width:100%}}
+.loading-steps{display:flex;flex-direction:column;gap:12px}
+.loading-step{display:flex;gap:12px;align-items:center;font-size:13px;color:var(--cream-dim);opacity:0;animation:fadeUp .4s ease both}
+.loading-step:nth-child(1){animation-delay:.3s}
+.loading-step:nth-child(2){animation-delay:.9s}
+.loading-step:nth-child(3){animation-delay:1.6s}
+.loading-step:nth-child(4){animation-delay:2.2s}
+.l-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0}
+
+/* RESULTS */
+#results-screen{display:none;max-width:660px;width:100%;animation:fadeUp .5s ease both}
+#results-screen.active{display:block}
+.results-header{margin-bottom:28px}
+.results-eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.results-title{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,4vw,32px);font-weight:300;line-height:1.2;color:var(--cream)}
+.results-sub{font-size:13px;color:var(--cream-dim);margin-top:8px;line-height:1.6}
+.scent-cards{display:flex;flex-direction:column;gap:12px}
+.scent-card{background:rgba(245,240,232,.03);border:1px solid var(--gold-border);border-radius:12px;padding:18px 20px;transition:border-color .2s,background .2s;animation:fadeUp .5s ease both}
+.scent-card:hover{border-color:var(--gold);background:var(--gold-mist)}
+.scent-card.top-pick{border-color:rgba(184,150,90,.5);background:rgba(184,150,90,.06)}
+.scent-card:nth-child(2){animation-delay:.1s}
+.scent-card:nth-child(3){animation-delay:.2s}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:8px}
+.scent-name{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:21px;font-weight:300;color:var(--cream)}
+.card-meta{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.scent-price{font-size:13px;color:var(--gold);letter-spacing:.04em;white-space:nowrap}
+.top-badge{font-size:9px;letter-spacing:.12em;text-transform:uppercase;background:var(--gold);color:var(--midnight);padding:3px 8px;border-radius:20px}
+.scent-family{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.scent-reason{font-size:13px;color:var(--cream-dim);line-height:1.65;margin-bottom:10px}
+.scent-notes{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.note-tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;border:1px solid var(--gold-border);color:var(--gold-light)}
+.card-link{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);text-decoration:none;border-bottom:1px solid var(--gold-border);padding-bottom:1px;transition:border-color .15s}
+.card-link:hover{border-color:var(--gold)}
+.results-actions{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+.btn-restart{font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:10px 22px;border-radius:var(--radius);border:1px solid var(--gold-border);color:var(--cream-dim);background:transparent;cursor:pointer;transition:all .18s}
+.btn-restart:hover{border-color:var(--gold);color:var(--cream)}
+.btn-book{font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:10px 22px;border-radius:var(--radius);border:1px solid var(--gold);background:var(--gold-mist);color:var(--gold);cursor:pointer;transition:all .18s;text-decoration:none;display:inline-flex;align-items:center}
+.btn-book:hover{background:var(--gold);color:var(--midnight)}
+.error-msg{font-size:12px;color:#e07070;margin-top:12px;padding:10px 14px;border-radius:var(--radius);border:1px solid rgba(224,112,112,.2);background:rgba(224,112,112,.05);display:none}
+.error-msg.visible{display:block}
+.demo-badge{position:fixed;bottom:14px;right:14px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-hint);padding:4px 9px;border-radius:20px;border:1px solid var(--gold-border);background:rgba(12,16,24,.85);z-index:100}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--gold-border);border-radius:4px}
+</style>
+</head>
+<body>
+<div id="particles"></div>
+
+<!-- LANG BAR -->
+<div class="lang-bar">
+  <button class="lang-btn active" onclick="setLang('en')" id="btn-en">EN</button>
+  <button class="lang-btn" onclick="setLang('uk')" id="btn-uk">UA</button>
+</div>
+
+<!-- MAIN -->
+<div class="page">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand-eyebrow" id="s-eyebrow">Scent Advisor</div>
+      <div class="brand-title" id="s-title">Find your<br><em>signature</em><br>scent</div>
+      <p class="brand-sub" id="s-sub">Tell us about a mood, a memory, or a moment. Our advisor will guide you to the fragrance that speaks to you.</p>
+      <div class="progress-section">
+        <div class="progress-label" id="s-progress-label">Your journey</div>
+        <div class="progress-steps" id="progressDots"></div>
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-quote" id="s-quote">"Perfume is the most intense form of memory."<br>— Patrick Süskind</div>
+    </div>
+  </aside>
+
+  <main class="main" id="mainArea">
+
+    <!-- STEP 1 -->
+    <div class="step-card active" id="step-1">
+      <div class="step-question" id="q1">Who is this fragrance for?</div>
+      <div class="step-hint" id="h1">We'll tailor our recommendations from the start.</div>
+      <div class="options-grid">
+        <button class="option-btn" data-step="1" data-value="For myself"><span class="option-icon">✦</span><span class="option-text"><span class="option-label" data-t="for_myself">For myself</span><span class="option-desc" data-t="for_myself_d">A new signature or everyday scent</span></span></button>
+        <button class="option-btn" data-step="1" data-value="A gift for her"><span class="option-icon">◇</span><span class="option-text"><span class="option-label" data-t="gift_her">A gift for her</span><span class="option-desc" data-t="gift_her_d">Something she'll cherish</span></span></button>
+        <button class="option-btn" data-step="1" data-value="A gift for him"><span class="option-icon">◈</span><span class="option-text"><span class="option-label" data-t="gift_him">A gift for him</span><span class="option-desc" data-t="gift_him_d">Refined, memorable, personal</span></span></button>
+        <button class="option-btn" data-step="1" data-value="A couple's gift"><span class="option-icon">◉</span><span class="option-text"><span class="option-label" data-t="gift_couple">A couple's gift</span><span class="option-desc" data-t="gift_couple_d">Shared or complementary scents</span></span></button>
+      </div>
+      <div class="step-nav"><button class="btn-next" id="next-1" disabled onclick="nextStep(1)" data-t="continue">Continue</button></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-card" id="step-2">
+      <div class="step-question" id="q2">What's the occasion or energy?</div>
+      <div class="step-hint" id="h2">Think about when and where this fragrance will be worn.</div>
+      <div class="options-grid">
+        <button class="option-btn" data-step="2" data-value="Everyday elegance"><span class="option-icon">☽</span><span class="option-text"><span class="option-label" data-t="occ_everyday">Everyday elegance</span><span class="option-desc" data-t="occ_everyday_d">Office, brunch, city life</span></span></button>
+        <button class="option-btn" data-step="2" data-value="Evening & seduction"><span class="option-icon">◆</span><span class="option-text"><span class="option-label" data-t="occ_evening">Evening & seduction</span><span class="option-desc" data-t="occ_evening_d">Dinners, date nights, events</span></span></button>
+        <button class="option-btn" data-step="2" data-value="Weekend & outdoors"><span class="option-icon">◎</span><span class="option-text"><span class="option-label" data-t="occ_weekend">Weekend & outdoors</span><span class="option-desc" data-t="occ_weekend_d">Light, free, effortless</span></span></button>
+        <button class="option-btn" data-step="2" data-value="Travel & adventure"><span class="option-icon">✈</span><span class="option-text"><span class="option-label" data-t="occ_travel">Travel & adventure</span><span class="option-desc" data-t="occ_travel_d">A scent that carries memories</span></span></button>
+        <button class="option-btn" data-step="2" data-value="Cozy & intimate"><span class="option-icon">◐</span><span class="option-text"><span class="option-label" data-t="occ_cozy">Cozy & intimate</span><span class="option-desc" data-t="occ_cozy_d">Home, evenings in, calm</span></span></button>
+        <button class="option-btn" data-step="2" data-value="Statement & bold"><span class="option-icon">◑</span><span class="option-text"><span class="option-label" data-t="occ_bold">Statement & bold</span><span class="option-desc" data-t="occ_bold_d">Unforgettable, commanding</span></span></button>
+      </div>
+      <div class="step-nav"><button class="btn-back" onclick="prevStep(2)" data-t="back">← Back</button><button class="btn-next" id="next-2" disabled onclick="nextStep(2)" data-t="continue">Continue</button></div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-card" id="step-3">
+      <div class="step-question" id="q3">Which scent world feels closest to you?</div>
+      <div class="step-hint" id="h3">Trust your instinct — there's no wrong answer.</div>
+      <div class="options-grid">
+        <button class="option-btn" data-step="3" data-value="Fresh & citric"><span class="option-icon">○</span><span class="option-text"><span class="option-label" data-t="sc_fresh">Fresh & citric</span><span class="option-desc" data-t="sc_fresh_d">Lemon, bergamot, grapefruit, clean air</span></span></button>
+        <button class="option-btn" data-step="3" data-value="Floral"><span class="option-icon">✿</span><span class="option-text"><span class="option-label" data-t="sc_floral">Floral</span><span class="option-desc" data-t="sc_floral_d">Rose, peony, jasmine, magnolia</span></span></button>
+        <button class="option-btn" data-step="3" data-value="Sweet & fruity"><span class="option-icon">◈</span><span class="option-text"><span class="option-label" data-t="sc_sweet">Sweet & fruity</span><span class="option-desc" data-t="sc_sweet_d">Vanilla, caramel, cherry, tropical</span></span></button>
+        <button class="option-btn" data-step="3" data-value="Oriental & spicy"><span class="option-icon">◉</span><span class="option-text"><span class="option-label" data-t="sc_oriental">Oriental & spicy</span><span class="option-desc" data-t="sc_oriental_d">Oud, amber, jasmine, spices</span></span></button>
+        <button class="option-btn" data-step="3" data-value="Woody & chypre"><span class="option-icon">◇</span><span class="option-text"><span class="option-label" data-t="sc_woody">Woody & chypre</span><span class="option-desc" data-t="sc_woody_d">Cedar, vetiver, moss, sandalwood</span></span></button>
+        <button class="option-btn" data-step="3" data-value="Leather"><span class="option-icon">◌</span><span class="option-text"><span class="option-label" data-t="sc_leather">Leather</span><span class="option-desc" data-t="sc_leather_d">Bold, smoky, powerful, skin-close</span></span></button>
+      </div>
+      <div class="step-nav"><button class="btn-back" onclick="prevStep(3)" data-t="back">← Back</button><button class="btn-next" id="next-3" disabled onclick="nextStep(3)" data-t="continue">Continue</button></div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-card" id="step-4">
+      <div class="step-question" id="q4">How present do you want the fragrance to be?</div>
+      <div class="step-hint" id="h4">Think about the impression you want to leave.</div>
+      <div class="options-grid">
+        <button class="option-btn" data-step="4" data-value="Subtle — close to the skin"><span class="option-icon">·</span><span class="option-text"><span class="option-label" data-t="int_whisper">A whisper</span><span class="option-desc" data-t="int_whisper_d">Subtle, intimate, discovered up close</span></span></button>
+        <button class="option-btn" data-step="4" data-value="Balanced — noticeable but elegant"><span class="option-icon">◎</span><span class="option-text"><span class="option-label" data-t="int_balanced">Balanced presence</span><span class="option-desc" data-t="int_balanced_d">Noticed when you enter the room</span></span></button>
+        <button class="option-btn" data-step="4" data-value="Powerful — bold and long-lasting"><span class="option-icon">◆</span><span class="option-text"><span class="option-label" data-t="int_bold">Powerful & lasting</span><span class="option-desc" data-t="int_bold_d">A trail that lingers for hours</span></span></button>
+      </div>
+      <div class="step-nav"><button class="btn-back" onclick="prevStep(4)" data-t="back">← Back</button><button class="btn-next" id="next-4" disabled onclick="nextStep(4)" data-t="continue">Continue</button></div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step-card" id="step-5">
+      <div class="step-question" id="q5">What season or time of year?</div>
+      <div class="step-hint" id="h5">Fragrances transform with temperature and light.</div>
+      <div class="options-grid">
+        <button class="option-btn" data-step="5" data-value="Spring — light and blooming"><span class="option-icon">◌</span><span class="option-text"><span class="option-label" data-t="sea_spring">Spring</span><span class="option-desc" data-t="sea_spring_d">Fresh starts, petals, morning air</span></span></button>
+        <button class="option-btn" data-step="5" data-value="Summer — radiant and energetic"><span class="option-icon">○</span><span class="option-text"><span class="option-label" data-t="sea_summer">Summer</span><span class="option-desc" data-t="sea_summer_d">Sun-warmed skin, sea breeze</span></span></button>
+        <button class="option-btn" data-step="5" data-value="Autumn — rich and introspective"><span class="option-icon">◈</span><span class="option-text"><span class="option-label" data-t="sea_autumn">Autumn</span><span class="option-desc" data-t="sea_autumn_d">Spice, amber, fallen leaves</span></span></button>
+        <button class="option-btn" data-step="5" data-value="Winter — deep and enveloping"><span class="option-icon">◆</span><span class="option-text"><span class="option-label" data-t="sea_winter">Winter</span><span class="option-desc" data-t="sea_winter_d">Warmth, depth, candlelight</span></span></button>
+        <button class="option-btn" data-step="5" data-value="All seasons — a timeless signature"><span class="option-icon">◉</span><span class="option-text"><span class="option-label" data-t="sea_all">All seasons</span><span class="option-desc" data-t="sea_all_d">A fragrance for every moment</span></span></button>
+      </div>
+      <div class="step-nav"><button class="btn-back" onclick="prevStep(5)" data-t="back">← Back</button><button class="btn-next" id="next-5" disabled onclick="nextStep(5)" data-t="continue">Continue</button></div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step-card" id="step-6">
+      <div class="step-question" id="q6">Any memory, image, or feeling to capture?</div>
+      <div class="step-hint" id="h6">Optional — but it helps us find something truly personal.</div>
+      <textarea class="free-input" id="freeText" rows="4"></textarea>
+      <div class="step-nav"><button class="btn-back" onclick="prevStep(6)" data-t="back">← Back</button><button class="btn-next" onclick="submitAll()" data-t="find_scent">Find my scent →</button></div>
+    </div>
+
+    <!-- LOADING -->
+    <div id="loading-screen">
+      <div class="loading-title" id="l-title">Composing your profile…</div>
+      <div class="loading-sub" id="l-sub">We're matching your answers to our collection.</div>
+      <div class="loading-bar-wrap"><div class="loading-bar" id="loadBar"></div></div>
+      <div class="loading-steps">
+        <div class="loading-step"><div class="l-dot"></div><span data-t="ls1">Reading your mood and occasion</span></div>
+        <div class="loading-step"><div class="l-dot"></div><span data-t="ls2">Exploring scent families</span></div>
+        <div class="loading-step"><div class="l-dot"></div><span data-t="ls3">Matching your olfactive profile</span></div>
+        
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results-screen">
+      <div class="results-header">
+        <div class="results-eyebrow" data-t="res_eyebrow">Your curated selection</div>
+        <div class="results-title" data-t="res_title">Your fragrances</div>
+        <div class="results-sub" id="resultsSub"></div>
+      </div>
+      <div class="scent-cards" id="scentCards"></div>
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="results-actions">
+        <button class="btn-restart" onclick="restart()" data-t="restart">Start over</button>
+        <a class="btn-book" href="https://bibliotheque-de-parfum.com/collections/discovery-sets" target="_blank" data-t="discovery">Try Discovery Set →</a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="demo-badge">✦ Bibliothèque de Parfum</div>
+
+<script>
+/* ══ TRANSLATIONS ══ */
+const T = {
+  en: {
+    lang_label:"EN",
+    s_eyebrow:"Scent Advisor",
+    s_title:"Find your\nsignature\nscent",
+    s_title_em:"signature",
+    s_sub:"Tell us about a mood, a memory, or a moment. Our advisor will guide you to the fragrance that speaks to you.",
+    s_progress:"Your journey",
+    s_quote:'"Perfume is the most intense form of memory." — Patrick Süskind',
+    q1:"Who is this fragrance for?",h1:"We'll tailor our recommendations from the start.",
+    q2:"What's the occasion or energy?",h2:"Think about when and where this fragrance will be worn.",
+    q3:"Which scent world feels closest to you?",h3:"Trust your instinct — there's no wrong answer.",
+    q4:"How present do you want the fragrance to be?",h4:"Think about the impression you want to leave.",
+    q5:"What season or time of year?",h5:"Fragrances transform with temperature and light.",
+    q6:"Any memory, image, or feeling to capture?",h6:"Optional — but it helps us find something truly personal.",
+    ft_placeholder:"e.g. rain on warm stone, a grandmother's house, a trip to the sea…",
+    for_myself:"For myself",for_myself_d:"A new signature or everyday scent",
+    gift_her:"A gift for her",gift_her_d:"Something she'll cherish",
+    gift_him:"A gift for him",gift_him_d:"Refined, memorable, personal",
+    gift_couple:"A couple's gift",gift_couple_d:"Shared or complementary scents",
+    occ_everyday:"Everyday elegance",occ_everyday_d:"Office, brunch, city life",
+    occ_evening:"Evening & seduction",occ_evening_d:"Dinners, date nights, events",
+    occ_weekend:"Weekend & outdoors",occ_weekend_d:"Light, free, effortless",
+    occ_travel:"Travel & adventure",occ_travel_d:"A scent that carries memories",
+    occ_cozy:"Cozy & intimate",occ_cozy_d:"Home, evenings in, calm",
+    occ_bold:"Statement & bold",occ_bold_d:"Unforgettable, commanding",
+    sc_fresh:"Fresh & citric",sc_fresh_d:"Lemon, bergamot, grapefruit, clean air",
+    sc_floral:"Floral",sc_floral_d:"Rose, peony, jasmine, magnolia",
+    sc_sweet:"Sweet & fruity",sc_sweet_d:"Vanilla, caramel, cherry, tropical",
+    sc_oriental:"Oriental & spicy",sc_oriental_d:"Oud, amber, jasmine, spices",
+    sc_woody:"Woody & chypre",sc_woody_d:"Cedar, vetiver, moss, sandalwood",
+    sc_leather:"Leather",sc_leather_d:"Bold, smoky, powerful, skin-close",
+    int_whisper:"A whisper",int_whisper_d:"Subtle, intimate, discovered up close",
+    int_balanced:"Balanced presence",int_balanced_d:"Noticed when you enter the room",
+    int_bold:"Powerful & lasting",int_bold_d:"A trail that lingers for hours",
+    sea_spring:"Spring",sea_spring_d:"Fresh starts, petals, morning air",
+    sea_summer:"Summer",sea_summer_d:"Sun-warmed skin, sea breeze",
+    sea_autumn:"Autumn",sea_autumn_d:"Spice, amber, fallen leaves",
+    sea_winter:"Winter",sea_winter_d:"Warmth, depth, candlelight",
+    sea_all:"All seasons",sea_all_d:"A fragrance for every moment",
+    continue:"Continue",back:"← Back",find_scent:"Find my scent →",
+    l_title:"Composing your profile…",l_sub:"We're matching your answers to our collection.",
+    ls1:"Reading your mood and occasion",ls2:"Exploring scent families",
+    ls3:"Matching your olfactive profile",
+    res_eyebrow:"Your curated selection",res_title:"Your fragrances",
+    restart:"Start over",discovery:"Try Discovery Set →",
+    top_pick:"Top pick",shop_link:"View in shop →",ice_frozen:"Your fragrance is frozen in time",ice_progress:"Break the ice to reveal your scent",
+    step_labels:["Who","Occasion","Character","Intensity","Season","Memory"],
+    sys_prompt:`You are an expert fragrance advisor at Bibliothèque de Parfum — a niche Ukrainian perfume house with 30+ years of experience. You speak with elegance, warmth, and precision. No emojis. The customer answers are in English; respond in English.`
+  },
+  uk: {
+    lang_label:"UA",
+    s_eyebrow:"Порадник аромату",
+    s_title:"Знайдіть свій\nпідпис\nароматом",
+    s_title_em:"підпис",
+    s_sub:"Розкажіть нам про настрій, спогад або момент. Наш порадник підбере аромат, що говорить саме з вами.",
+    s_progress:"Ваша подорож",
+    s_quote:'"Парфуми — найінтенсивніша форма пам\'яті." — Патрік Зюскінд',
+    q1:"Для кого цей аромат?",h1:"Ми підлаштуємо рекомендації під вас з самого початку.",
+    q2:"Який привід або настрій?",h2:"Подумайте, коли та де буде носитись цей аромат.",
+    q3:"Який ароматний світ найближчий до вас?",h3:"Довіртесь інтуїції — неправильних відповідей немає.",
+    q4:"Наскільки помітним має бути аромат?",h4:"Подумайте про враження, яке хочете залишити.",
+    q5:"Яка пора року?",h5:"Аромати змінюються залежно від температури та світла.",
+    q6:"Є спогад, образ або відчуття, яке хочете вловити?",h6:"Необов'язково — але це допоможе знайти щось справді особисте.",
+    ft_placeholder:"напр. дощ на теплому камені, бабусин дім, поїздка до моря…",
+    for_myself:"Для себе",for_myself_d:"Новий підпис або щоденний аромат",
+    gift_her:"Подарунок їй",gift_her_d:"Щось, що вона буде берегти",
+    gift_him:"Подарунок йому",gift_him_d:"Вишуканий, незабутній, особистий",
+    gift_couple:"Подарунок парі",gift_couple_d:"Спільні або доповнюючі аромати",
+    occ_everyday:"Щоденна елегантність",occ_everyday_d:"Офіс, бранч, міське життя",
+    occ_evening:"Вечір і спокуса",occ_evening_d:"Вечері, побачення, події",
+    occ_weekend:"Вихідні та природа",occ_weekend_d:"Легко, вільно, невимушено",
+    occ_travel:"Подорожі та пригоди",occ_travel_d:"Аромат, що носить спогади",
+    occ_cozy:"Затишок і близькість",occ_cozy_d:"Дім, вечори вдома, спокій",
+    occ_bold:"Сміливо і яскраво",occ_bold_d:"Незабутній, владний",
+    sc_fresh:"Свіжий та цитрусовий",sc_fresh_d:"Лимон, бергамот, грейпфрут, чисте повітря",
+    sc_floral:"Квітковий",sc_floral_d:"Троянда, піон, жасмин, магнолія",
+    sc_sweet:"Солодкий та фруктовий",sc_sweet_d:"Ваніль, карамель, вишня, тропіки",
+    sc_oriental:"Східний та пряний",sc_oriental_d:"Уд, амбра, жасмин, спеції",
+    sc_woody:"Деревний та шипровий",sc_woody_d:"Кедр, ветивер, мох, сандал",
+    sc_leather:"Шкіряний",sc_leather_d:"Сміливий, димний, потужний, близький до шкіри",
+    int_whisper:"Шепіт",int_whisper_d:"Тонкий, інтимний, відчутний поруч",
+    int_balanced:"Збалансована присутність",int_balanced_d:"Помітний при вході до кімнати",
+    int_bold:"Потужний та стійкий",int_bold_d:"Шлейф, який тягнеться годинами",
+    sea_spring:"Весна",sea_spring_d:"Свіжий початок, пелюстки, ранкове повітря",
+    sea_summer:"Літо",sea_summer_d:"Шкіра на сонці, морський бриз",
+    sea_autumn:"Осінь",sea_autumn_d:"Прянощі, амбра, опале листя",
+    sea_winter:"Зима",sea_winter_d:"Тепло, глибина, кандельний вогонь",
+    sea_all:"Всі сезони",sea_all_d:"Аромат для кожного моменту",
+    continue:"Далі",back:"← Назад",find_scent:"Знайти мій аромат →",
+    l_title:"Складаємо ваш профіль…",l_sub:"Підбираємо відповідь з нашої колекції.",
+    ls1:"Читаємо ваш настрій та привід",ls2:"Досліджуємо ароматні родини",
+    ls3:"Підбираємо ваш ольфактивний профіль",
+    res_eyebrow:"Ваша добірка",res_title:"Ваші аромати",
+    restart:"Почати знову",discovery:"Спробувати Discovery Set →",
+    top_pick:"Топ вибір",shop_link:"Переглянути в магазині →",ice_frozen:"Ваш аромат заморожено в часі",ice_progress:"Розбийте лід, щоб розкрити аромат",
+    step_labels:["Кому","Привід","Характер","Інтенсивність","Сезон","Спогад"],
+    sys_prompt:`Ти — досвідчений порадник з ароматів Bibliothèque de Parfum — нішевого українського парфумерного дому з 30+ роками досвіду. Говориш з елегантністю, теплом та точністю. Без емодзі. Відповідай українською мовою.`
+  }
+};
+
+let lang = 'en';
+
+/* ══ CATALOG — реальні аромати Bibliothèque de Parfum ══ */
+const CATALOG = [
+  {name:"I Want",          family:"Sweet & Fruity",    price:"549 zł",notes:["cherry liqueur","vanilla","bitter almond"],         desc:"A sensual sweet fragrance — cherry liqueur, vanilla and almond create an irresistible charm.",                 url:"https://bibliotheque-de-parfum.com/collections/all/products/i-want-100-ml",gender:"women",seasons:["autumn","winter"],intensity:"powerful",bestseller:true},
+  {name:"Taste of Illusions",family:"Sweet & Fruity", price:"334 zł",notes:["passion fruit","lemon","tropical"],                  desc:"Tangy, bright and tropical — a burst of passion fruit and lemon that defies expectations.",                     url:"https://bibliotheque-de-parfum.com/collections/all/products/taste-of-illusions-100-m",gender:"women",seasons:["spring","summer"],intensity:"balanced",bestseller:true},
+  {name:"Page 69",         family:"Sweet & Fruity",    price:"364 zł",notes:["caramel","orange","white flowers"],                 desc:"A sweet, luminous fragrance — caramel and orange blossoms wrapped in warm white flowers.",                      url:"https://bibliotheque-de-parfum.com/collections/all/products/page-69-100-ml",gender:"women",seasons:["spring","autumn"],intensity:"balanced",bestseller:true},
+  {name:"Ultimatum",       family:"Oriental & Spicy",  price:"627 zł",notes:["jasmine","woody","sweet","oriental"],               desc:"An oriental woody sweet fragrance with jasmine — powerful, luxurious, unforgettable.",                          url:"https://bibliotheque-de-parfum.com/collections/all/products/ultimatum-100-ml",gender:"unisex",seasons:["autumn","winter"],intensity:"powerful",bestseller:true},
+  {name:"Lost in Bali",    family:"Floral",             price:"447 zł",notes:["white flowers","coconut","pistachios"],             desc:"A dreamy tropical escape — white flowers, coconut and pistachio take you to paradise.",                         url:"https://bibliotheque-de-parfum.com/collections/all/products/lost-in-bali-100-ml",gender:"women",seasons:["spring","summer"],intensity:"balanced",bestseller:true},
+  {name:"Memoirs of Geisha",family:"Floral",            price:"364 zł",notes:["peach","cashmere","white flowers","delicate"],      desc:"A delicate, poetic fragrance — peach, cashmere and flowers whisper stories of grace.",                         url:"https://bibliotheque-de-parfum.com/collections/all/products/memoirs-of-geisha-100-ml",gender:"women",seasons:["spring","summer"],intensity:"whisper",bestseller:true},
+  {name:"Nirvana",         family:"Oriental & Spicy",  price:"740 zł",notes:["amber","powder","Iso E Super","musk"],              desc:"An amber-powdery fragrance with Iso E Super — enveloping, meditative, skin-like.",                             url:"https://bibliotheque-de-parfum.com/collections/all/products/nirvana-100-ml",gender:"unisex",seasons:["winter","autumn"],intensity:"balanced",bestseller:true},
+  {name:"Sensual Rebellion",family:"Oriental & Spicy", price:"387 zł",notes:["vanilla","sweet wood","powdery","musk"],            desc:"Luxurious vanilla and sweet wood — a powdery rebellion of elegance and sensuality.",                           url:"https://bibliotheque-de-parfum.com/collections/all/products/sensual-rebellion-100-ml",gender:"women",seasons:["autumn","winter"],intensity:"balanced",bestseller:true},
+  {name:"P.S.",            family:"Floral",             price:"447 zł",notes:["peony","lychee","jasmine","fruity"],                desc:"A floral-fruity letter — peony, lychee and jasmine, light and joyful.",                                         url:"https://bibliotheque-de-parfum.com/collections/all/products/p-s-100-ml",gender:"women",seasons:["spring","summer"],intensity:"balanced",bestseller:true},
+  {name:"Polar Lights",    family:"Floral",             price:"447 zł",notes:["jasmine","apricot","sparkling","floral"],           desc:"A sparkling floral fragrance — jasmine and apricot shimmer like the aurora borealis.",                         url:"https://bibliotheque-de-parfum.com/collections/all/products/polar-lights-100-ml",gender:"women",seasons:["winter","spring"],intensity:"balanced",bestseller:false},
+  {name:"Love Catcher",    family:"Fresh & Citric",     price:"485 zł",notes:["magnolia","citrus","light","floral"],               desc:"A light citrus-floral fragrance — magnolia and citrus that catches hearts effortlessly.",                       url:"https://bibliotheque-de-parfum.com/collections/all/products/love-catcher-100-ml",gender:"women",seasons:["spring","summer"],intensity:"whisper",bestseller:false},
+  {name:"Top Secret",      family:"Oriental & Spicy",   price:"447 zł",notes:["vanilla","tobacco","spices","dried fruits"],        desc:"A vanilla-tobacco fragrance with spices and dried fruits — mysterious and captivating.",                       url:"https://bibliotheque-de-parfum.com/collections/all/products/top-secret-100-ml",gender:"unisex",seasons:["autumn","winter"],intensity:"powerful",bestseller:false},
+  {name:"English Sun",     family:"Oriental & Spicy",   price:"364 zł",notes:["amber","vanilla","oud","jasmine"],                  desc:"An amber-vanilla fragrance with oud and jasmine — warm as an English summer afternoon.",                       url:"https://bibliotheque-de-parfum.com/collections/all/products/english-sun-100-ml",gender:"unisex",seasons:["summer","autumn"],intensity:"balanced",bestseller:false},
+  {name:"Icy Wave",        family:"Fresh & Citric",     price:"545 zł",notes:["blackcurrant","bergamot","fresh","citrus"],         desc:"A fresh citrus fragrance with blackcurrant and bergamot — crisp and invigorating.",                            url:"https://bibliotheque-de-parfum.com/collections/all/products/icy-wave-100-ml",gender:"unisex",seasons:["spring","summer"],intensity:"balanced",bestseller:false},
+  {name:"Silence",         family:"Floral",             price:"447 zł",notes:["musk","bergamot","vanilla","soft"],                  desc:"A soft fragrance with musk, bergamot and vanilla — quiet, comforting, intimate.",                             url:"https://bibliotheque-de-parfum.com/collections/all/products/silence-100-ml",gender:"women",seasons:["all"],intensity:"whisper",bestseller:false},
+  {name:"Love is a Drug",  family:"Fresh & Citric",     price:"485 zł",notes:["aquatic","white flowers","rose"],                   desc:"Aquatic, white flowers, rose — an addictive fresh floral that feels like falling in love.",                    url:"https://bibliotheque-de-parfum.com/collections/all/products/love-is-a-drug-100-ml",gender:"women",seasons:["spring","summer"],intensity:"balanced",bestseller:false},
+  {name:"Counting Stars",  family:"Fresh & Citric",     price:"549 zł",notes:["lemon","vetiver","marigold"],                       desc:"Lemon, vetiver and marigold — a stargazing fragrance, luminous and grounded.",                                  url:"https://bibliotheque-de-parfum.com/collections/all/products/counting-stars-100-ml",gender:"unisex",seasons:["summer","autumn"],intensity:"balanced",bestseller:false},
+  {name:"Rose Suede",      family:"Floral",             price:"447 zł",notes:["rose","suede","lime","tomato leaf"],                 desc:"A rose-suede fragrance with lime and tomato leaf — modern, sharp, deeply feminine.",                           url:"https://bibliotheque-de-parfum.com/collections/all/products/rose-suede-100-ml",gender:"women",seasons:["spring","autumn"],intensity:"balanced",bestseller:false},
+  {name:"Leather Bliss",   family:"Leather",            price:"393 zł",notes:["vanilla","leather","herbal","warm"],                 desc:"A vanilla-leather fragrance with herbal notes — sophisticated, warm, unforgettable.",                          url:"https://bibliotheque-de-parfum.com/collections/all/products/leather-bliss-100-ml",gender:"unisex",seasons:["autumn","winter"],intensity:"balanced",bestseller:false},
+  {name:"Dangerous Romance",family:"Woody & Chypre",    price:"545 zł",notes:["cannabis","woody","smoky","daring"],                 desc:"A woody-smoky fragrance with cannabis notes — bold, edgy, for those who dare.",                                url:"https://bibliotheque-de-parfum.com/collections/all/products/dangerous-romance-100-ml",gender:"unisex",seasons:["autumn","winter"],intensity:"powerful",bestseller:false},
+  {name:"Brutal Story",    family:"Woody & Chypre",     price:"446 zł",notes:["fruity","chypre","woody","masculine"],               desc:"A fruity-chypre fragrance — confident, complex and unmistakably bold.",                                        url:"https://bibliotheque-de-parfum.com/collections/all/products/brutal-story-100-ml",gender:"men",seasons:["autumn","winter"],intensity:"powerful",bestseller:false},
+  {name:"Thunderstorm",    family:"Leather",            price:"545 zł",notes:["leather","bitter almond","lavender"],                desc:"A leather fragrance with bitter almond and lavender — stormy, intense and powerful.",                         url:"https://bibliotheque-de-parfum.com/collections/all/products/thunderstorm-100-ml",gender:"men",seasons:["autumn","winter"],intensity:"powerful",bestseller:false},
+  {name:"Secret Chapter",  family:"Fresh & Citric",     price:"446 zł",notes:["marine","salty lemon","fresh"],                     desc:"A marine fresh fragrance with salty lemon — a secret told by the sea.",                                       url:"https://bibliotheque-de-parfum.com/collections/all/products/secret-chapter-100-ml",gender:"men",seasons:["spring","summer"],intensity:"balanced",bestseller:false},
+  {name:"Hurricane",       family:"Fresh & Citric",     price:"545 zł",notes:["woody","green","citrus"],                           desc:"Woody green-citrus — a natural force, energetic and wild.",                                                   url:"https://bibliotheque-de-parfum.com/collections/all/products/hurricane-100-ml",gender:"men",seasons:["spring","summer"],intensity:"balanced",bestseller:false},
+  {name:"Obscura",         family:"Sweet & Fruity",     price:"528 zł",notes:["caramel","chocolate","coffee"],                     desc:"Caramel, chocolate and coffee — a dark and indulgent gourmand experience.",                                    url:"https://bibliotheque-de-parfum.com/collections/all/products/obscura-100-ml",gender:"unisex",seasons:["autumn","winter"],intensity:"balanced",bestseller:false},
+  {name:"Celeste",         family:"Fresh & Citric",     price:"528 zł",notes:["pear","orange blossom","Georgywood"],               desc:"A fresh fragrance with pear, orange blossom and Georgywood — airy and luminous.",                             url:"https://bibliotheque-de-parfum.com/collections/all/products/celeste-100-ml",gender:"women",seasons:["spring","summer"],intensity:"whisper",bestseller:false},
+  {name:"Amoria",          family:"Sweet & Fruity",     price:"528 zł",notes:["mango","iris","vanilla"],                           desc:"A fruity-floral fragrance with mango, iris and vanilla — joyful and seductive.",                              url:"https://bibliotheque-de-parfum.com/collections/all/products/amoria-100-ml",gender:"women",seasons:["summer","spring"],intensity:"balanced",bestseller:false},
+  {name:"Solaris",         family:"Oriental & Spicy",   price:"528 zł",notes:["rhubarb","woods","tonka beans"],                    desc:"A warm fragrance with rhubarb, woods and tonka beans — solar, rich and comforting.",                          url:"https://bibliotheque-de-parfum.com/collections/all/products/solaris-100-ml",gender:"unisex",seasons:["summer","autumn"],intensity:"balanced",bestseller:false},
+  {name:"Veloria",         family:"Floral",             price:"528 zł",notes:["osmanthus","sandalwood","vanilla"],                  desc:"A delicate fragrance with osmanthus, sandalwood and vanilla — graceful and timeless.",                        url:"https://bibliotheque-de-parfum.com/collections/all/products/veloria-100-ml",gender:"women",seasons:["all"],intensity:"whisper",bestseller:false},
+  {name:"Royal Favourite", family:"Fresh & Citric",     price:"549 zł",notes:["citrus","musky","soft","fresh"],                    desc:"A fresh citrus fragrance with a soft musky touch — regal, clean and effortless.",                            url:"https://bibliotheque-de-parfum.com/collections/all/products/royal-favourite-100-ml",gender:"unisex",seasons:["all"],intensity:"balanced",bestseller:false},
+];
+
+function buildSysPrompt(lng) {
+  return T[lng].sys_prompt + `
+
+Complete collection:
+${CATALOG.map((s,i)=>`${i+1}. ${s.name} (${s.family}) — ${s.desc} Notes: ${s.notes.join(', ')}. Price: ${s.price}. Gender: ${s.gender}. Seasons: ${s.seasons.join('/')}. Intensity: ${s.intensity}.${s.bestseller?' BESTSELLER.':''}`).join('\n')}
+
+Based on customer answers, select exactly 2–3 fragrances. The FIRST must be the single best match (top pick). ${lng==='uk'?'Respond in Ukrainian.':'Respond in English.'} Return ONLY valid JSON:
+{"intro":"1-2 poetic sentences.","recommendations":[{"name":"exact name from catalog","reason":"one elegant sentence."}]}`;
+}
+
+/* ══ STATE ══ */
+const TOTAL_STEPS=6;
+let currentStep=1;
+const answers={};
+let pendingResults=null;
+
+/* ══ PARTICLES ══ */
+(function(){
+  const c=document.getElementById('particles');
+  for(let i=0;i<22;i++){
+    const p=document.createElement('div');p.className='particle';
+    const s=Math.random()*3+1;
+    p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${14+Math.random()*22}s;animation-delay:${Math.random()*18}s;`;
+    c.appendChild(p);
+  }
+})();
+
+/* ══ LANGUAGE SYSTEM ══ */
+function setLang(l){
+  lang=l;
+  document.getElementById('btn-en').classList.toggle('active',l==='en');
+  document.getElementById('btn-uk').classList.toggle('active',l==='uk');
+  const t=T[l];
+  // sidebar
+  document.getElementById('s-eyebrow').textContent=t.s_eyebrow;
+  const bt=document.getElementById('s-title');
+  bt.innerHTML=t.s_title.replace(t.s_title_em,`<em>${t.s_title_em}</em>`).replace('\n','<br>').replace('\n','<br>');
+  document.getElementById('s-sub').textContent=t.s_sub;
+  document.getElementById('s-progress-label').textContent=t.s_progress;
+  document.getElementById('s-quote').innerHTML=t.s_quote;
+  // questions
+  for(let i=1;i<=6;i++){document.getElementById(`q${i}`).textContent=t[`q${i}`];document.getElementById(`h${i}`).textContent=t[`h${i}`];}
+  document.getElementById('freeText').placeholder=t.ft_placeholder;
+  // options
+  document.querySelectorAll('[data-t]').forEach(el=>{const k=el.dataset.t;if(t[k]!==undefined)el.textContent=t[k];});
+  // loading
+  document.getElementById('l-title').textContent=t.l_title;
+  document.getElementById('l-sub').textContent=t.l_sub;
+  // results
+  document.querySelectorAll('[data-t="res_eyebrow"]').forEach(e=>e.textContent=t.res_eyebrow);
+  document.querySelectorAll('[data-t="res_title"]').forEach(e=>e.textContent=t.res_title);
+
+  renderProgress();
+}
+
+/* ══ PROGRESS ══ */
+function renderProgress(){
+  const c=document.getElementById('progressDots');c.innerHTML='';
+  for(let i=1;i<=TOTAL_STEPS;i++){
+    const d=document.createElement('div');
+    d.className='progress-dot'+(i<currentStep?' done':i===currentStep?' active':'');
+    c.appendChild(d);
+  }
+  const tx=document.createElement('span');tx.className='progress-text';
+  const lb=T[lang].step_labels;
+  tx.textContent=currentStep<=TOTAL_STEPS?lb[currentStep-1]:'✦';
+  c.appendChild(tx);
+}
+
+/* ══ OPTION SELECT ══ */
+document.addEventListener('click',function(e){
+  const btn=e.target.closest('.option-btn');if(!btn)return;
+  const step=btn.dataset.step,val=btn.dataset.value;
+  document.querySelectorAll(`.option-btn[data-step="${step}"]`).forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');answers[step]=val;
+  const nb=document.getElementById(`next-${step}`);if(nb)nb.disabled=false;
+});
+
+function nextStep(from){
+  if(!answers[from])return;
+  document.getElementById(`step-${from}`).classList.remove('active');
+  currentStep=from+1;
+  const n=document.getElementById(`step-${currentStep}`);
+  if(n){n.classList.add('active');renderProgress();}
+  document.getElementById('mainArea').scrollTop=0;
+}
+function prevStep(from){
+  document.getElementById(`step-${from}`).classList.remove('active');
+  currentStep=from-1;
+  document.getElementById(`step-${currentStep}`).classList.add('active');
+  renderProgress();document.getElementById('mainArea').scrollTop=0;
+}
+
+/* ══ SUBMIT ══ */
+async function submitAll(){
+  answers.freeText=document.getElementById('freeText').value.trim();
+  document.getElementById('step-6').classList.remove('active');
+  document.getElementById('loading-screen').classList.add('active');
+  currentStep=TOTAL_STEPS+1;renderProgress();
+  const t=T[lang];
+  const msg=`Who: ${answers['1']||'myself'}\nOccasion: ${answers['2']||'everyday'}\nScent: ${answers['3']||'fresh'}\nIntensity: ${answers['4']||'balanced'}\nSeason: ${answers['5']||'all'}\nMemory: ${answers.freeText||'none'}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:buildSysPrompt(lang),messages:[{role:'user',content:msg}]})
+    });
+    const data=await res.json();
+    const raw=data.content?.[0]?.text||'';
+    await new Promise(r=>setTimeout(r,2800));
+    document.getElementById('loading-screen').classList.remove('active');
+    let parsed;
+    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}
+    catch(e){showError('Could not parse response. Please try again.');return;}
+    pendingResults=parsed;
+    showResults(parsed);
+  }catch(err){
+    await new Promise(r=>setTimeout(r,1500));
+    document.getElementById('loading-screen').classList.remove('active');
+    showError('Connection error. Please try again.');
+  }
+}
+
+/* ══ RESULTS ══ */
+function showResults(parsed){
+  const el=document.getElementById('results-screen');el.classList.add('active');
+  if(parsed.intro)document.getElementById('resultsSub').textContent=parsed.intro;
+  const ce=document.getElementById('scentCards');ce.innerHTML='';
+  const t=T[lang];
+  (parsed.recommendations||[]).forEach((rec,i)=>{
+    const item=CATALOG.find(c=>c.name===rec.name);if(!item)return;
+    const card=document.createElement('div');
+    card.className='scent-card'+(i===0?' top-pick':'');
+    card.style.animationDelay=`${i*.13}s`;
+    card.innerHTML=`
+      <div class="card-top">
+        <div class="scent-name">${item.name}</div>
+        <div class="card-meta">${i===0?`<span class="top-badge">${t.top_pick}</span>`:''}<div class="scent-price">${item.price}</div></div>
+      </div>
+      <div class="scent-family">${item.family}</div>
+      <div class="scent-reason">${rec.reason}</div>
+      <div class="scent-notes">${item.notes.map(n=>`<span class="note-tag">${n}</span>`).join('')}</div>
+      <a class="card-link" href="${item.url}" target="_blank">${t.shop_link}</a>
+    `;
+    ce.appendChild(card);
+  });
+  burstGold();document.getElementById('mainArea').scrollTop=0;
+}
+
+function showError(msg){
+  const e=document.getElementById('errorMsg');e.textContent=msg;e.classList.add('visible');
+  document.getElementById('step-6').classList.add('active');currentStep=6;renderProgress();
+}
+function burstGold(){
+  for(let i=0;i<18;i++){
+    const p=document.createElement('div');
+    p.style.cssText=`position:fixed;border-radius:50%;pointer-events:none;z-index:999;width:${Math.random()*4+2}px;height:${Math.random()*4+2}px;background:#b8965a;left:${20+Math.random()*60}%;top:${20+Math.random()*60}%;`;
+    document.body.appendChild(p);
+    p.animate([{opacity:.8,transform:'translateY(0)'},{opacity:0,transform:`translateY(${-80-Math.random()*130}px)`}],
+      {duration:1200+Math.random()*800,delay:Math.random()*400,easing:'ease-out',fill:'both'}).onfinish=()=>p.remove();
+  }
+}
+
+function restart(){
+  Object.keys(answers).forEach(k=>delete answers[k]);
+  pendingResults=null;iceHits=0;cracks=[];iceShattered=false;
+  document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
+  document.querySelectorAll('[id^="next-"]').forEach(b=>{if(b)b.disabled=true;});
+  document.getElementById('freeText').value='';
+  document.getElementById('results-screen').classList.remove('active');
+  document.getElementById('loading-screen').classList.remove('active');
+  document.getElementById('errorMsg').classList.remove('visible');
+  document.getElementById('scentCards').innerHTML='';
+  const lb=document.getElementById('loadBar');lb.style.animation='none';lb.offsetHeight;lb.style.animation='';
+  currentStep=1;
+  document.querySelectorAll('.step-card').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step-1').classList.add('active');
+  renderProgress();document.getElementById('mainArea').scrollTop=0;
+}
+
+// INIT
+setLang('en');
+</script>
+</body>
+</html>
